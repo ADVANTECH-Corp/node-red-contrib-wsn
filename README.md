@@ -4,11 +4,11 @@ A collection of [Node-RED](http://nodered.org) nodes to Access ADVANTECH  Wirele
 ## Install
 Use npm to command to install this package locally in the Node-RED modules directory
 ```bash
-npm install node-red-contrib-advwsn 
+npm install node-red-contrib-wsn 
 ```
 or install in it globally with the command
 ```bash
-npm install node-red-contrib-advwsn -g 
+npm install node-red-contrib-wsn -g 
 ```
 
 ## Nodes included in the package
@@ -18,6 +18,7 @@ npm install node-red-contrib-advwsn -g
 
 ## Usage example
 **[wsn-gw]**
+
 ![Flow_wsn-gw](./png/Flow_wsn-gw.png)
 
 ![Edit_wsn-gw](./png/Edit_wsn-gw.png)
@@ -32,6 +33,7 @@ npm install node-red-contrib-advwsn -g
 
 ---
 **[wsn-senhub]**
+
 ![Flow_wsn-senhub](./png/Flow_wsn-senhub.png)
 
 ![Edit_wsn-senhub](./png/Edit_wsn-senhub.png)
