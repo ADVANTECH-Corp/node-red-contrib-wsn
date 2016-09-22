@@ -4,13 +4,13 @@
     "email": "marco2.lin@advantech.com.tw",
     "url": "http://www.advantech.com.tw/"
   },
-  "name": "node-red-contrib-advwsn",
+  "name": "node-red-contrib-wsn",
   "version": "0.2.1",
   "description": "Node-red node for ADVANTECH Wireless Sensor Network",
   "dependencies": {
   },
   "repository": {
-    "url": "git+https://github.com/ADVANTECH-Corp/node-red-contrib-susi.git"
+    "url": "git+https://github.com/ADVANTECH-Corp/node-red-contrib-wsn.git"
   },
   "keywords": [
     "ADVANTECH",
@@ -18,9 +18,9 @@
   ],
   "license": "Apache 2.0",
   "bugs": {
-    "url": "https://github.com/ADVANTECH-Corp/node-red-contrib-advwsn/issues"
+    "url": "https://github.com/ADVANTECH-Corp/node-red-contrib-wsn/issues"
   },
-  "homepage": "https://github.com/ADVANTECH-Corp/node-red-contrib-advwsn",
+  "homepage": "https://github.com/ADVANTECH-Corp/node-red-contrib-wsn",
   "node-red": {
     "nodes": {
       "wsn-gw": "wsn_node/wsn_gw.js",
