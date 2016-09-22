@@ -1,0 +1,583 @@
+<!--
+  Copyright 2015 Advantech
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+
+
+<!-- Define the edit dialog -->
+<script type="text/x-red" data-template-name="wsn-gw">
+
+    <div class="form-row">
+        <label for="node-input-operNow"><i class="fa fa-list"></i> Operation</label>
+        <select id="node-input-operNow" onchange="GwGetIntf()">
+            <option value="Get">Get</option>
+            <option value="Set">Set</option>
+        </select>
+    </div>
+    <br/>
+
+    <div class="form-row">
+        <label for="node-input-intfNow"><i class="fa fa-list"></i> Net Type</label>
+        <select id="node-input-intfNow" onchange="GwGetDevOfIntf()"></select>
+        <!--
+        <a href="#" class="editor-button" id="node-input-refresh"><i class="fa fa-refresh"></i></a>
+        -->
+    </div>
+    <br/>
+
+    <div class="form-row">
+        <label for="node-input-devNow"><i class="fa fa-list"></i> Net ID</label>
+        <select id="node-input-devNow" onchange="GwGetTopicOfDev()"></select>
+    </div>
+    <br/>
+
+    <div class="form-row">
+        <label for="node-input-topicNow"><i class="fa fa-list"></i> Category</label>
+        <select id="node-input-topicNow" onchange="GwGetAttribOfTopic()"></select>
+    </div>
+    <br/>
+
+    <div class="form-row">
+        <label for="node-input-attribNow"><i class="fa fa-list"></i> Attribute</label>
+        <select id="node-input-attribNow"></select>
+    </div>
+    <br/>
+
+    <div class="form-row">
+        <label for="node-input-setvalue"><i class="icon-tag"></i> Set to</label>
+        <input type="text" id="node-input-setvalue" placeholder="value">
+    </div>
+    <br/>
+
+    <div class="form-row hidden">
+        <input type="text" id="node-input-operSaved">
+        <input type="text" id="node-input-intfSaved">
+        <input type="text" id="node-input-devSaved">
+        <input type="text" id="node-input-topicSaved">
+        <input type="text" id="node-input-attribSaved">
+        <input type="text" id="node-input-operOpts">
+        <input type="text" id="node-input-intfOpts">
+        <input type="text" id="node-input-devOpts">
+        <input type="text" id="node-input-topicOpts">
+        <input type="text" id="node-input-attribOpts">
+    </div>
+
+    <!-- Node name -->
+    <div class="form-row">
+        <label for="node-input-name"><i class="icon-tag"></i> Name</label>
+        <input type="text" id="node-input-name" placeholder="Name">
+    </div>
+</script>
+
+
+<!-- Next, some simple help text is provided for the node -->
+<script type="text/x-red" data-help-name="wsn-gw">
+    <p>Node to get/set the status of a ADVANTECH WSN gateway platform, triggered 
+        by an input message.</p>
+    <p>Outputs a <b>msg</b> with <b>msg.payload</b> containing the 
+        JSON description of reading or result.</p>
+</script>
+
+<script type="text/javascript">
+    RED.nodes.registerType('wsn-gw', {
+        category: 'ADVANTECH',            // the palette category
+        defaults: {                       // defines the editable properties of the node
+            name:           {value: ""},
+            operNow:        {value: 0},
+            intfNow:        {value: 0},
+            devNow:         {value: 0},
+            topicNow:       {value: 0},
+            attribNow:      {value: 0},
+            setvalue:       {value: ""},
+
+            operSaved:      {value: ""},
+            intfSaved:      {value: ""},
+            devSaved:       {value: ""},
+            topicSaved:     {value: ""},
+            attribSaved:    {value: ""},
+
+            intfOpts:       {value: ""},
+            devOpts:        {value: ""},
+            topicOpts:      {value: ""},
+            attribOpts:     {value: ""},
+        },
+        inputs:  1,                       // set the number of inputs - only 0 or 1
+        outputs: 1,                       // set the number of outputs - 0 to n
+        color:   "#C0DEED",
+        icon:    "dht.png",               // saved in  icons/myicon.png
+        paletteLabel: "wsn-gw",
+        label:  function() {              // sets the default label contents
+                    return this.name||this.topic||"wsn-gw";
+                },
+        labelStyle: function() {          // sets the class to apply to the label
+                        return this.name ? "node_label_italic": "";
+                },
+        oneditprepare: gw_oneditprepare,
+        oneditsave: gw_oneditsave,
+    });
+
+
+    function GwRefreshSelects() {
+        //RED.notify("Refresh: clean state!", "info");
+
+        $("#node-input-operNow").val('');
+        $("#node-input-intfNow").empty();
+        $("#node-input-devNow").empty();
+        $("#node-input-topicNow").empty();
+        $("#node-input-attribNow").empty();
+
+        $("#node-input-operSaved").val('');
+        $("#node-input-intfSaved").val('');
+        $("#node-input-devSaved").val('');
+        $("#node-input-topicSaved").val('');
+        $("#node-input-attribSaved").val('');
+
+        $("#node-input-intfOpts").val('');
+        $("#node-input-devOpts").val('');
+        $("#node-input-topicOpts").val('');
+        $("#node-input-attribOpts").val('');
+    }
+
+
+    var editOpenCnt = 0;
+
+
+    function GwGetIntf() {
+        //RED.notify("!On Oper Change, get intf!", "info");
+
+        //var intfVal = $("#node-input-intfNow").val();
+        var intfText = $("#node-input-intfNow option:selected").text();
+
+        if (editOpenCnt < 4) {
+            editOpenCnt++;
+        } else {
+            $("#node-input-intfNow").val('');
+            $("#node-input-devNow").val('');
+            $("#node-input-topicNow").val('');
+            $("#node-input-attribNow").val('');
+        }
+
+        /*
+        var operVal = $("#node-input-operNow").val();
+        if (operVal === "Set") {
+            //$("#node-input-setvalue").show();
+            $("#node-input-setvalue").removeAttr('disabled');
+        } else {
+            //$("#node-input-setvalue").hide();
+            $("#node-input-setvalue").attr('disabled', 'disabled');
+        }*/
+        var operText = $("#node-input-operNow option:selected").text();
+        if (operText === "Set") {
+            $("#node-input-setvalue").removeAttr('disabled');
+        } else {
+            $("#node-input-setvalue").attr('disabled', 'disabled');
+        }
+
+        //$("#node-input-intfNow").prop('disabled', false);            
+
+        $.getJSON('WSN_GwGetIntf/' + this.id, function(data) {
+            var isOrgIntfFound = false;
+            var orgIntfVal = "";
+
+            if (data != null) {
+                var intfList = "";
+                // TODO: add 'all' option ?
+
+                for (var i=0; i<data[0].length; i++) {
+                    // TODO: future solution to handle special char like ' ', '(', ...
+                    var intfStrArray = data[0][i].split(/[\s]+/);
+                    var intfVal = "";
+                    for (var j=0; j<intfStrArray.length; j++) {
+                        if (j !== 0) {
+                            intfVal += "_";
+                        }
+                        intfVal += intfStrArray[j];
+                    }
+                    //RED.notify("intfVal=" + intfVal, "info");
+
+                    intfList = intfList + "<option value=" + intfVal + ">" + data[0][i] + "</option>";
+
+                    if (intfText === data[0][i]) {
+                        isOrgIntfFound = true;
+                        orgIntfVal = intfVal;
+                    }
+                }
+                $("#node-input-intfNow").html(intfList);
+            }
+
+            if (isOrgIntfFound == true) {
+                $("#node-input-intfNow").val(orgIntfVal);
+            } else {
+                $("#node-input-intfNow").val('');
+            }
+        });
+    };
+
+
+    function GwGetDevOfIntf() {
+        //RED.notify("On Interface Change, get device!", "info");
+
+        /*
+        var intfVal = $("#node-input-intfNow").val();
+        if (intfVal === null) {
+            intfVal = $("#node-input-intfSaved").val();
+            if (intfVal === undefined || intfVal === null || intfVal === "") {
+                //RED.notify("Unknown interface, return!", "info");
+                return;
+            }
+        } */
+        var intfText = $("#node-input-intfNow option:selected").text();
+        if (intfText === null || intfText === "") {
+            intfText = $("#node-input-intfSaved").val();
+            if (intfText === undefined || intfText === null || intfText === "") {
+                return;
+            }
+        } else {
+           //RED.notify("cur intfText:" + intfText, "info");
+        }
+
+        //var devVal = $("#node-input-devNow").val();
+        var devText = $("#node-input-devNow option:selected").text();
+
+        //RED.notify("GetDevOfIntf: editOpenCnt=" + editOpenCnt, "info");        
+        if (editOpenCnt < 4) {
+            editOpenCnt++;
+        } else {
+            $("#node-input-devNow").val('');
+            $("#node-input-topicNow").val('');
+            $("#node-input-attribNow").val('');
+        }
+
+        $.getJSON('WSN_GwGetDev/' + this.id + '/' + intfText, function(data) {
+            var isOrgDevFound = false;
+            var orgDevVal = "";
+
+            if (data != null) {
+                var devList = "";
+                // TODO: add 'all' option ?
+
+                for (var i=0; i<data[1].length; i++) {
+                    // TODO: future solution to handle special char like ' ', '(', ...
+                    var devStrArray = data[1][i].split(/[\s]+/);
+                    var devVal = "";
+                    for (var j=0; j<devStrArray.length; j++) {
+                        if (j !== 0) {
+                            devVal += "_";
+                        }
+                        devVal += devStrArray[j];
+                    }
+                    //RED.notify("devVal=" + devVal, "info");
+
+                    devList = devList + "<option value=" + devVal + ">" + data[1][i] + "</option>";
+
+                    if (devText === data[1][i]) {
+                        isOrgDevFound = true;
+                        orgDevVal = devVal;
+                    }
+                }
+                $("#node-input-devNow").html(devList);
+            }
+
+            if (isOrgDevFound == true) {
+                $("#node-input-devNow").val(orgDevVal);
+            } else {
+                $("#node-input-devNow").val('');
+            }
+        });
+    };
+
+
+    function GwGetTopicOfDev() {
+        //RED.notify("On Device Change, get topic!", "info");
+
+        /*
+        var intfVal = $("#node-input-intfNow").val();
+        if (intfVal === null) {
+            intfVal = $("#node-input-intfSaved").val();
+            if (intfVal === undefined || intfVal === null || intfVal ==="") {
+                return;
+            }
+        } */
+        var intfText = $("#node-input-intfNow option:selected").text();
+        if (intfText === null || intfText === "") {
+            intfText = $("#node-input-intfSaved").val();
+            if (intfText === undefined || intfText === null || intfText === "") {
+                return;
+            }
+        }
+
+        /*
+        var devVal = $("#node-input-devNow").val();
+        if (devVal === null) {
+            devVal = $("#node-input-devSaved").val();
+            if (devVal === undefined || devVal === null || devVal === "") {
+                return;
+            }
+        } */
+        var devText = $("#node-input-devNow option:selected").text();
+        if (devText === null || devText === "") {
+            devText = $("#node-input-devSaved").val();
+            if (devText === undefined || devText === null || devText === "") {
+                return;
+            }
+        }
+        //RED.notify("cur type:" + typeVal + ", cur intf:" + intfVal + ", cur intf:" + devVal, "info");
+
+        //var topicVal = $("#node-input-topicNow").val();
+        var topicText = $("#node-input-topicNow option:selected").text();
+
+        //RED.notify("GetTopicOfDev: editOpenCnt=" + editOpenCnt, "info");
+        if (editOpenCnt < 4) {
+            editOpenCnt++;
+        } else {
+            $("#node-input-topicNow").val('');
+            $("#node-input-attribNow").val('');
+        }
+
+        $.getJSON('WSN_GwGetTopic/' + this.id + '/' + intfText + '/' + devText, function(data) {
+            var isOrgTopicFound = false;
+            var orgTopicVal = "";
+
+            if (data != null) {
+                var topicList = "";
+                // TODO: add 'all' option ?
+
+                for (var i=0; i<data[2].length; i++) {
+                    // TODO: future solution to handle special char like ' ', '(', ...
+                    var topicStrArray = data[2][i].split(/[\s]+/);
+                    var topicVal = "";
+                    for (var j=0; j<topicStrArray.length; j++) {
+                        if (j !== 0) {
+                            topicVal += "_";
+                        }
+                        topicVal += topicStrArray[j];
+                    }
+                    //RED.notify("topicVal=" + topicVal, "info");
+
+                    topicList = topicList + "<option value=" + topicVal + ">" + data[2][i] + "</option>";
+
+                    if (topicText === data[2][i]) {
+                        isOrgTopicFound = true;
+                        orgTopicVal = topicVal;
+                    }
+                }
+                $("#node-input-topicNow").html(topicList);
+            }
+
+            if (isOrgTopicFound == true) {
+                $("#node-input-topicNow").val(orgTopicVal);
+            } else {
+                $("#node-input-topicNow").val('');
+            }
+        });        
+    };
+
+
+    function GwGetAttribOfTopic() {
+        //RED.notify("On Topic Change! Get Attribute", "info");
+        /*
+        var operVal = $("#node-input-operNow").val();
+        if (operVal === null) {
+            operVal = $("#node-input-operSaved").val();
+            if (operVal === undefined || operVal === null || operVal === "") {
+                return;
+            }
+        } */
+        var operText = $("#node-input-operNow option:selected").text();
+        if (operText === "Set") {
+            //$("#node-input-setvalue").removeAttr('disabled');
+        } else {
+            //$("#node-input-setvalue").attr('disabled', 'disabled');
+        }
+
+        /*
+        var intfVal = $("#node-input-intfNow").val();
+        if (intfVal === null) {
+            intfVal = $("#node-input-intfSaved").val();
+            if (intfVal === undefined || intfVal === null || intfVal === "") {
+                return;
+            }
+        } */
+        var intfText = $("#node-input-intfNow option:selected").text();
+        if (intfText === null || intfText === "") {
+            intfText = $("#node-input-intfSaved").val();
+            if (intfText === undefined || intfText === null || intfText === "") {
+                return;
+            }
+        }
+
+        /*
+        var devVal = $("#node-input-devNow").val();
+        if (devVal === null) {
+            devVal = $("#node-input-devSaved").val();
+            if (devVal === undefined || devVal === null || devVal === "") {
+                return;
+            }
+        } */
+        var devText = $("#node-input-devNow option:selected").text();
+        if (devText === null || devText === "") {
+            devText = $("#node-input-devSaved").val();
+            if (devText === undefined || devText === null || devText === "") {
+                return;
+            }
+        }
+
+        /*
+        var topicVal = $("#node-input-topicNow").val();
+        if (topicVal === null) {
+            topicVal = $("#node-input-topicSaved").val();
+            if (topicVal === undefined || topicVal === null || topicVal === "") {
+                return;
+            }
+        } */
+        var topicText = $("#node-input-topicNow option:selected").text();
+        if (topicText === null || topicText === "") {
+            topicText = $("#node-input-topicSaved").val();
+            if (topicText === undefined || topicText === null || topicText === "") {
+                return;
+            }
+        }
+        //RED.notify("cur type:" + typeVal + ", cur intf:" + intfVal + ", cur intf:" + devVal, "info");
+
+        //var attribVal = $("#node-input-attribNow").val();
+        var attribText = $("#node-input-attribNow option:selected").text();
+
+        //RED.notify("GetAttribOfTopic: editOpenCnt=" + editOpenCnt, "info");
+        if (editOpenCnt < 4) {
+            editOpenCnt++;
+        } else {
+            $("#node-input-attribNow").val('');
+        }
+
+        /*
+        $("#node-input-attribNow").prop('disabled', false);            
+        if (topicVal === "bn" || topicVal === "ver") {
+            $("#node-input-attribNow").append($("<option></option>").attr("value", "None").text("None"));
+            $("#node-input-attribNow").val('None');
+            $("#node-input-attribNow").prop('disabled', true);            
+            return;
+        }
+        */
+        /*
+        if (typeVal === "Sensor") {
+            var intfStrs = intfVal.split(/[\/\(\)]+/);
+            //RED.notify(intfStrs[0] + " " + intfStrs[1] + " " + intfStrs[2]);
+            intfVal = intfStrs[0] + "-" + intfStrs[2];
+        }
+        */
+
+        $.getJSON('WSN_GwGetAttrib/' + this.id + '/' + operText + '/' + intfText + '/' + devText + '/' + topicText, function(data) {
+            var isOrgAttribValFound = false;
+            var orgAttribVal = "";
+
+            if (data != null) {
+                var attribList = "";
+                // TODO: add 'all' option ?
+
+                for (var i=0; i<data[3].length; i++) {
+                    // TODO: future solution to handle special char like ' ', '(', ...
+                    var attribStrArray = data[3][i].split(/[\s]+/);
+                    var attribVal = "";
+                    for (var j=0; j<attribStrArray.length; j++) {
+                        if (j !== 0) {
+                            attribVal += "_";
+                        }
+                        attribVal += attribStrArray[j];
+                    }
+                    //RED.notify("attribVal=" + attribVal, "info");
+
+                    attribList = attribList + "<option value=" + attribVal + ">" + data[3][i] + "</option>";
+
+                    if (attribText === data[3][i]) {
+                        isOrgAttribValFound = true;
+                        orgAttribVal = attribVal;
+                    }
+                }
+                $("#node-input-attribNow").html(attribList);
+            }
+
+            if (isOrgAttribValFound == true) {
+                $("#node-input-attribNow").val(orgAttribVal);
+            } else {
+                $("#node-input-attribNow").val('');
+            }
+        });        
+    };
+	
+
+    function gw_oneditprepare() {
+        editOpenCnt = 0;
+        //RED.notify("On Edit prepare!", "info");
+        //RED.notify("typeNow:"+this.typeNow, "info");
+        //RED.notify("intfNow:"+this.intfNow, "info");
+        //RED.notify("devNow:"+this.devNow, "info");
+        //RED.notify("topicNow:"+this.topicNow, "info");
+        //RED.notify("attribNow:"+this.attribNow, "info");
+
+        if (this.intfOpts && this.devOpts && this.topicOpts && this.attribOpts) {
+            /*
+            $("#node-input-intfNow").append($("<option></option>").attr("value", this.intfNow).text(this.intfNow));
+            $("#node-input-devNow").append($("<option></option>").attr("value", this.devNow).text(this.devNow));
+            $("#node-input-topicNow").append($("<option></option>").attr("value", this.topicNow).text(this.topicNow));
+            $("#node-input-attribNow").append($("<option></option>").attr("value", this.attribNow).text(this.attribNow));
+            */
+            $("#node-input-intfNow").append($("<option></option>").attr("value", this.intfNow).text($("#node-input-intfSaved").val()));
+            $("#node-input-devNow").append($("<option></option>").attr("value", this.devNow).text($("#node-input-devSaved").val()));
+            $("#node-input-topicNow").append($("<option></option>").attr("value", this.topicNow).text($("#node-input-topicSaved").val()));
+            $("#node-input-attribNow").append($("<option></option>").attr("value", this.attribNow).text($("#node-input-attribSaved").val()));
+        } else {
+            GwRefreshSelects();
+        }
+    };
+
+
+    function gw_oneditsave() {
+        //RED.notify("On Edit Save!", "info");
+        var value = null;
+        var opts = null;
+        
+        //value = $("#node-input-operNow").val();
+        value = $("#node-input-operNow option:selected").text();
+        $("#node-input-operSaved").val(value);
+        opts = $("#node-input-operNow").html();
+        $("#node-input-operOpts").val(opts);
+        
+        value = $("#node-input-intfNow").val();
+        value = $("#node-input-intfNow option:selected").text();        
+        $("#node-input-intfSaved").val(value);
+        opts = $("#node-input-intfNow").html();
+        $("#node-input-intfOpts").val(opts);
+        
+        //value = $("#node-input-devNow").val();
+        value = $("#node-input-devNow option:selected").text();
+        $("#node-input-devSaved").val(value);
+        opts = $("#node-input-devNow").html();
+        $("#node-input-devOpts").val(opts);
+        
+        //value = $("#node-input-topicNow").val();
+        value = $("#node-input-topicNow option:selected").text();
+        $("#node-input-topicSaved").val(value);
+        opts = $("#node-input-topicNow").html();
+        $("#node-input-topicOpts").val(opts);
+        
+        //value = $("#node-input-attribNow").val();
+        value = $("#node-input-attribNow option:selected").text();
+        $("#node-input-attribSaved").val(value);            
+        var opts = $("#node-input-attribNow").html();
+        $("#node-input-attribOpts").val(opts);
+    }
+</script>
+
+
+

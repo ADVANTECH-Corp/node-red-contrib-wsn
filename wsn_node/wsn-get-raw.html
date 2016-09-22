@@ -1,0 +1,91 @@
+<!--
+  Copyright 2015 Brendan Murray
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+
+
+<!-- Define the edit dialog.                       -->
+<script type="text/x-red" data-template-name="WSN-GET-RAW">
+    <div class="form-row">
+        <label for="node-input-topic"><i class="fa fa-tasks"></i> Topic</label>
+        <input type="text" id="node-input-topic" placeholder="Topic">
+    </div>
+    <br/>
+
+    <div class="form-row">
+        <label for="node-input-srcuri"><i class="fa fa-tasks"></i> URI</label>
+        <input type="text" id="node-input-srcuri" placeholder="URI">
+    </div>
+    <br/>
+
+    <!-- Node name -->
+    <div class="form-row">
+        <label for="node-input-name"><i class="icon-tag"></i> Name</label>
+        <input type="text" id="node-input-name" placeholder="Name">
+    </div>
+</script>
+
+
+<!-- Next, some simple help text is provided for the node.                   -->
+<script type="text/x-red" data-help-name="WSN-GET-RAW">
+   <p>Node to retrieve the status of a ADVANTECH platform by SUSI, either at
+   startup, or at a predefined period, determined by an input message</p>
+   <p>Outputs a <b>msg</b> containing <b>msg.topic</b> which defaults to the
+   sensor name, and <b>msg.payload</b> containing the reading.</p>
+</script>
+
+<script type="text/javascript">
+    RED.nodes.registerType('WSN-GET-RAW', {
+        category: 'ADVANTECH', // the palette category
+        defaults: {               // defines the editable properties of the node
+            topic:   {value: "WSN GET"},
+            srcuri:  {value: ""},
+            name:    {value: ""}
+        },
+        inputs:  1,              // set the number of inputs - only 0 or 1
+        outputs: 1,              // set the number of outputs - 0 to n
+        color:   "#C0DEED",
+        icon:    "dht.png",   // saved in  icons/myicon.png
+		paletteLabel: "WSN-GET-RAW",
+        label:   function() {    // sets the default label contents
+                   return this.name||this.topic||"WSN-GET-RAW";
+                 },
+        labelStyle: function() { // sets the class to apply to the label
+                   return this.name ? "node_label_italic": "";
+                 },
+		oneditprepare: ws_oneditprepare
+    });
+	
+	function HardwareMonitorChangeIndex(){
+	var tp = $("#node-input-functiontype").val();
+	var list = "";
+	if(tp == 0) {
+	list = temperaturelist;
+	} else if(tp == 1) {
+	list = fanspeedlist;
+	} else if(tp == 2) {
+	list = voltagelist;
+	}else if(tp == 3) {
+	list = currentlist;	
+	}
+	$("#node-input-index").html(list);
+	};
+	
+	var indextemp, functiontypetemp;
+	function ws_oneditprepare() { 
+
+	};
+</script>
+
+
